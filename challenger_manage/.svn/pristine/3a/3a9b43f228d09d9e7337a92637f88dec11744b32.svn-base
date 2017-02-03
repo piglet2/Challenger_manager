@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.envisioncn.it.super_sonic.showcase.evaluation.mapper.EvaluationMapper">
+     <resultMap id="Evaluation" type="com.envisioncn.it.super_sonic.showcase.evaluation.entity.Evaluation" >
+		<id property="id" column="id" />
+		<result property="periodId" column="period_id" />
+		<result property="managerId" column="manager_id" />
+		<result property="userId" column="user_id" />
+		<result property="priseWill" column="prise_will" />
+		<result property="priseWisdom" column="prise_wisdom" />
+		<result property="priseLove" column="prise_love" />
+		<result property="prosWill" column="pros_will" />
+		<result property="prosWisdom" column="pros_wisdom" />
+		<result property="prosLove" column="pros_love" />
+		<result property="hasRead" column="has_read" />
+		<result property="feedback" column="feedback" />
+		<result property="feedbackTime" column="feedback_time" />
+		<result property="cts" column="cts" />
+		
+	</resultMap>
+	
+	  <resultMap id="NotEvaluation" type="com.envisioncn.it.super_sonic.showcase.evaluation.pbg.EvaluationPageBean" >
+		<result property="managerId" column="managerId" />
+		<result property="manager" column="manager" />
+		<result property="managerLocation" column="managerLocation" />
+		<result property="managerDivision" column="managerDivision" />
+		<result property="managerDepartment" column="managerDepartment" />
+		<result property="userId" column="userId" />
+		<result property="user" column="username" />
+		<result property="userLocation" column="userLocation" />
+		<result property="userDivision" column="userDivision" />
+		<result property="userDepartment" column="userDepartment" />
+		
+	</resultMap>
+	
+	<insert id="save" useGeneratedKeys="true" keyProperty="id" parameterType="com.envisioncn.it.super_sonic.showcase.evaluation.entity.Evaluation">
+		INSERT INTO evaluation (
+				period_id, manager_id, user_id,prise_will,prise_wisdom,prise_love,pros_will,pros_wisdom,pros_love
+			) VALUES (
+				#{periodId}, #{managerId}, #{userId},#{priseWill},#{priseWisdom},#{priseLove},#{prosWill},#{prosWisdom},#{prosLove}
+			)
+	</insert>
+	
+	 <select id="getAllMDEvasByTime"   resultMap="Evaluation" >
+		SELECT * FROM evaluation ORDER BY cts DESC
+	</select> 
+	
+	 <select id="getNotEvaluation"   resultMap="NotEvaluation" >
+		SELECT
+			u1.user_id managerId,
+			u1.last_name manager,
+			u1.location managerLocation,
+			u1.division managerDivision,
+			u1.department managerDepartment,
+			u2.user_id userId,
+			u2.last_name username,
+			u2.location userLocation,
+			u2.division userDivision,
+			u2.department userDepartment
+		FROM
+			sap_user u1,
+			sap_user u2,
+			sap_empjob j
+		WHERE
+			u1.user_id = j.manager_id
+		AND u2.user_id = j.user_id
+		AND j.empl_status = '581'
+		AND u2.custom06 = '正式员工'
+		AND u2.user_id NOT IN (
+			SELECT
+				user_id
+			FROM
+				evaluation
+			WHERE
+				period_id =#{periodId}
+		)
+		ORDER BY
+			u1.user_id
+	</select> 
+	
+</mapper>

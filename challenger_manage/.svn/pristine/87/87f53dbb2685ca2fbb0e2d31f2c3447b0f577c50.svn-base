@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC 
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" 
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<tiles-definitions>
+	<!-- 默认的主模板 -->
+	<definition name="base.definition" template="/WEB-INF/view/templates/base/layout.jsp">
+		<!-- 动态页面标题 -->
+		<put-attribute name="title" expression="${pageTitle}" value="默认的标题" />
+		<!-- 页面的关键字 -->
+		<put-attribute name="keyword" value="我是关键字，我的出现是为了保证能够被搜索引擎快速的定位主题" />
+		<!-- 网站内容描述 -->
+		<put-attribute name="description" value="我是网站描述，这个网站是个啥玩意"></put-attribute>
+		<!-- 静态资源 -->
+		<put-attribute name="static" value="/WEB-INF/view/templates/base/static.jsp" />
+	</definition>
+
+
+
+	<definition name="index.page" extends="base.definition" template="/WEB-INF/view/templates/index_layout.jsp">
+		<put-attribute name="body" value="/WEB-INF/view/index.jsp" />
+	</definition>
+
+	<definition name="pre_login.page" extends="base.definition" template="/WEB-INF/view/templates/login_layout.jsp">
+		<put-attribute name="body" value="/WEB-INF/view/login.jsp" />
+	</definition>
+	
+	<!-- 页面组件的处理 -->
+	<definition name="component/*.page" extends="base.definition" template="/WEB-INF/view/templates/naked_layout.jsp">
+		<put-attribute name="body" value="/WEB-INF/view/component/{1}.jsp" />
+	</definition>
+
+
+	<!-- 首页上文件模板 -->
+	<definition name="*.page" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/{1}.jsp" />
+	</definition>
+
+
+	<definition name="*/*.page" extends="base.definition">
+		<put-attribute name="left_nav" value="/WEB-INF/view/{1}/left_nav.jsp"></put-attribute> 
+		<put-attribute name="body" value="/WEB-INF/view/{1}/{2}.jsp" />
+	</definition>	
+	
+	
+	<!-- 内容模板 -->
+	<definition name="*/*.content" extends="base.definition" template="/WEB-INF/view/templates/content_layout.jsp">		
+		<put-attribute name="body" value="/WEB-INF/view/{1}/{2}.jsp" />	
+	</definition>		
+	
+	
+	
+</tiles-definitions> 

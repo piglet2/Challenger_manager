@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!-- 日志路径-->
+	<property name="LOG_HOME" value="/tmp/log/"/>
+	<!-- 日志文件的大小 -->
+	<property name="MAX_FILE_SIZE" value="30MB" />
+	<!-- 控制台的日志级别 -->
+	<property name="CONSOLE_LEVEL" value="INFO" />
+	<!-- 日志文件的日志级别 ，暂时没启用-->
+	<property name="FILE_LEVEL" value="INFO" />
+
+	<contextName>super_sonic</contextName>
+
+
+	<!-- 控制台输出 -->
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>${CONSOLE_LEVEL}</level>
+		</filter>
+		<encoder>
+			<pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<!-- 全量日志 -->
+	<appender name="debug" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<!-- 不启用 -->
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>${FILE_LEVEL}</level>
+		</filter>
+
+		<file>${LOG_HOME}ss-service.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_HOME}ss-service-%d{yyyy-MM-dd_HH}.%i.zip
+			</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+
+		<encoder>
+			<pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+
+
+
+	<root level="debug">		
+		<appender-ref ref="debug" />
+	</root>
+</configuration>

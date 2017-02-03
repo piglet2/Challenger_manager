@@ -1,0 +1,233 @@
+/******************************************************************************
+ * @File name : EvaluationTransfer.java
+ *
+ * @Author : bo.chen
+ *
+ * @Date : 2016年8月15日 下午2:22:19
+ *
+ * @Copyright Notice: Copyright (c) 2016 Envision, Inc. All Rights Reserved.
+ *            This software is published under the terms of the Envision
+ *            Software License version 1.0, a copy of which has been included
+ *            with this distribution in the LICENSE.txt file.
+ *
+ *****************************************************************************/
+package com.envisioncn.it.super_sonic.showcase.evaluation.tran;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.envisioncn.it.super_sonic.showcase.evaluation.biz.AssessmentCyclesService;
+import com.envisioncn.it.super_sonic.showcase.evaluation.biz.EvaluationPeriodSerivce;
+import com.envisioncn.it.super_sonic.showcase.evaluation.biz.EvaluationService;
+import com.envisioncn.it.super_sonic.showcase.evaluation.biz.SAPEmpjobService;
+import com.envisioncn.it.super_sonic.showcase.evaluation.biz.SAPUserService;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.Assessment;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.AssessmentCycles;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.Evaluation;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.EvaluationPeriod;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.SAPUser;
+import com.envisioncn.it.super_sonic.showcase.evaluation.pbg.EvaluationPageBean;
+import com.envisioncn.it.super_sonic.showcase.evaluation.utils.DateUtils;
+import com.envisioncn.it.super_sonic.showcase.evaluation.utils.ExcelUtils;
+import com.envisioncn.it.super_sonic.showcase.evaluation.utils.StringUtils;
+
+
+
+@Service
+public class EvaluationTransfer {
+	
+	@Autowired
+	private EvaluationService evaluationService;
+	@Autowired
+	private SAPUserService sapUserService;
+	@Autowired
+    private EvaluationPeriodSerivce evaluationPeriodService;
+	@Autowired
+	private SAPEmpjobService sapEmpjobService;
+	@Autowired
+	private AssessmentCyclesService assessmentCyclesService;
+	
+	
+	/*
+	 * 根据code判断是横向还是纵向，进行封装数据
+	 */
+	public List<EvaluationPageBean> toPageBeanByCode(String code)throws Exception {
+		
+		List<EvaluationPageBean> pbs = new LinkedList<EvaluationPageBean>();
+		EvaluationPageBean pb = null;
+		
+		if (code.equals(ExcelUtils.MDEVA)) {
+			List<Evaluation> MDEvas = evaluationService.getAllMDEvas();
+			
+			if (!MDEvas.isEmpty()) {
+				for (Evaluation eva : MDEvas) {
+					pb = toMDPageBean(eva);
+					pbs.add(pb);
+				}
+			}
+
+		} else if (code.equals(ExcelUtils.TDEVA)) {
+			List<Assessment> TDEvas = evaluationService.getAllTDEvas();
+			
+			if (!TDEvas.isEmpty()) {
+				for (Assessment ass : TDEvas) {
+					pb = toTDPageBean(ass);
+					pbs.add(pb);
+				}
+			}
+		} else if (code.equals(ExcelUtils.ALL)){
+            List<Evaluation> MDEvas = evaluationService.getAllMDEvas();
+            List<Assessment> TDEvas = evaluationService.getAllTDEvas();
+            
+			if (!MDEvas.isEmpty()) {
+				for (Evaluation eva : MDEvas) {
+					pb = toMDPageBean(eva);
+					pbs.add(pb);
+				}
+			}
+			if (!TDEvas.isEmpty()) {
+				for (Assessment ass : TDEvas) {
+					pb = toTDPageBean(ass);
+					pbs.add(pb);
+				}
+			}
+			
+		}
+
+		return pbs;
+	}
+	
+	/*
+	 * 获取纵向评论周期
+	 */
+	private String getEvaluationPeriod(String periodId) {
+		Objects.requireNonNull(periodId);
+
+		StringBuilder sb = new StringBuilder();
+		EvaluationPeriod eva = evaluationPeriodService.getEvaluationPeriod(periodId);
+		if (eva != null) {
+			sb.append(DateUtils.format(eva.getPeriodDateFrom()));
+			sb.append(" " + "to" + " ");
+			sb.append(DateUtils.format(eva.getPeriodDateTo()));
+		}
+		
+		return sb.toString();
+	}
+	/*
+	 * 获取横向评论周期
+	 */
+	private String getAssessmentPeriod(String cycleId) {
+		Objects.requireNonNull(cycleId);
+
+		StringBuilder sb = new StringBuilder();
+		AssessmentCycles ass = assessmentCyclesService.getAssessmentPeriod(cycleId);
+		if (ass != null) {
+			sb.append(DateUtils.format(ass.getCyclesDateFrom()));
+			sb.append(" " + "to" + " ");
+			sb.append(DateUtils.format(ass.getCyclesDateTo()));
+		}
+		
+		return sb.toString();
+	}
+	/*
+	 * 封装纵向的数据
+	 */
+    private EvaluationPageBean toMDPageBean(Evaluation eva){
+    	EvaluationPageBean pb = new EvaluationPageBean();
+		SAPUser manage = sapUserService.getSapUserById(eva.getManagerId());
+		SAPUser user = sapUserService.getSapUserById(eva.getUserId());
+		
+		
+		pb.setManagerId(eva.getManagerId());
+		if(manage!=null){
+		pb.setManager(StringUtils.tranString(manage.getLastName()));
+		pb.setManagerDepartment(StringUtils.tranString(manage.getDepartment()));
+		pb.setManagerDivision(StringUtils.tranString(manage.getDivision()));
+		pb.setManagerLocation(StringUtils.tranString(manage.getLocation()));
+		
+		}else{
+			
+		pb.setManager(StringUtils.string());
+			
+		}
+		
+		pb.setUserId(eva.getUserId());
+		if(user!=null){
+		pb.setUser(StringUtils.tranString(user.getLastName()));
+		pb.setUserDepartment(StringUtils.tranString(user.getDepartment()));
+		pb.setUserDivision(StringUtils.tranString(user.getDivision()));
+		pb.setUserLocation(StringUtils.tranString(user.getLocation()));
+		
+		}else{
+	    pb.setUser(StringUtils.string());
+	    
+		}
+		
+		pb.setPeriod(getEvaluationPeriod(eva.getPeriodId()));
+		pb.setPriseWill(String.valueOf(eva.getPriseWill()));
+		pb.setPriseWisdom(String.valueOf(eva.getPriseWisdom()));
+		pb.setPriseLove(String.valueOf(eva.getPriseLove()));
+		pb.setProsWill(eva.getProsWill());
+		pb.setProsWisdom(eva.getProsWisdom());
+		pb.setProsLove(eva.getProsLove());
+		pb.setCts(DateUtils.format(eva.getCts(),DateUtils.YYYYMMDDHHMMSS));
+		pb.setPeriodId(eva.getPeriodId());
+		
+		
+		return pb;
+    }
+    
+    /*
+	 * 封装横向的数据
+	 */
+    private EvaluationPageBean toTDPageBean(Assessment ass){
+    	EvaluationPageBean pb = new EvaluationPageBean();
+		SAPUser Critic = sapUserService.getSapUserById(ass.getCriticId());
+		SAPUser user = sapUserService.getSapUserById(ass.getUserId());
+		
+		
+		pb.setManagerId(ass.getCriticId());
+		if(Critic!=null){
+		pb.setManager(StringUtils.tranString(Critic.getLastName()));
+		pb.setManagerDepartment(StringUtils.tranString(Critic.getDepartment()));
+		pb.setManagerDivision(StringUtils.tranString(Critic.getDivision()));
+		pb.setManagerLocation(StringUtils.tranString(Critic.getLocation()));
+		
+		}else{
+			
+		pb.setManager(StringUtils.string());
+			
+		}
+		
+		pb.setUserId(ass.getUserId());
+		if(user!=null){
+		pb.setUser(StringUtils.tranString(user.getLastName()));
+		pb.setUserDepartment(StringUtils.tranString(user.getDepartment()));
+		pb.setUserDivision(StringUtils.tranString(user.getDivision()));
+		pb.setUserLocation(StringUtils.tranString(user.getLocation()));
+		
+		}else{
+	    pb.setUser(StringUtils.string());
+	    
+		}
+		
+		pb.setPeriod(getAssessmentPeriod(ass.getCycleId()));
+		pb.setPriseWill(String.valueOf(ass.getPriseWill()));
+		pb.setPriseWisdom(String.valueOf(ass.getPriseWisdom()));
+		pb.setPriseLove(String.valueOf(ass.getPriseLove()));
+		pb.setProsWill(ass.getProsWill());
+		pb.setProsWisdom(ass.getProsWisdom());
+		pb.setProsLove(ass.getProsLove());
+		pb.setCts(DateUtils.format(ass.getCts(),DateUtils.YYYYMMDDHHMMSS));
+		pb.setPeriodId(ass.getCycleId());
+		
+		
+		return pb;
+    }
+}

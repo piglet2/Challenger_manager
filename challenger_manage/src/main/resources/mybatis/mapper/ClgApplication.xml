@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.envisioncn.it.super_sonic.showcase.evaluation.mapper.ClgApplicationMapper">
+    <resultMap id="ClgApplication" type="com.envisioncn.it.super_sonic.showcase.evaluation.entity.ClgApplication" >
+		<id property="id" column="id" />
+		<result property="icon" column="icon" />
+		<result property="color" column="icon_color" />
+		<result property="name" column="name" />
+		<result property="url" column="url" />
+		<result property="sort" column="sort" />
+		<result property="show" column="isShow" />
+		<result property="cts" column="cts" />
+		
+	</resultMap>
+	
+	<insert id="save" useGeneratedKeys="true" keyProperty="id" parameterType="com.envisioncn.it.super_sonic.showcase.evaluation.entity.ClgApplication">
+			INSERT INTO clg_application (
+				icon, name, icon_color,url, sort, isShow
+			) VALUES (
+				#{icon}, #{name},#{color}, #{url}, #{sort}, #{show}
+			)
+	</insert>
+	
+	<select id="queryAll"   resultMap="ClgApplication" >
+		SELECT * FROM clg_application ORDER BY cts DESC
+	</select> 
+	
+	<select id="queryById"   resultMap="ClgApplication" >
+		SELECT * FROM clg_application where id=#{id}
+	</select> 
+	
+	<delete id="delete"   parameterType="int" >
+		delete from clg_application where id=#{id}
+	</delete> 
+	
+	<update id="update"   parameterType="com.envisioncn.it.super_sonic.showcase.evaluation.entity.ClgApplication">
+		update clg_application set icon=#{icon},name=#{name},icon_color=#{color},
+		url=#{url},sort=#{sort},isShow=#{show} where id=#{id}
+	</update> 
+	
+	
+</mapper>

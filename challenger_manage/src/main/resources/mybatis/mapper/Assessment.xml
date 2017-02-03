@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.envisioncn.it.super_sonic.showcase.evaluation.mapper.AssessmentMapper">
+
+	<resultMap id="Assessment" type="com.envisioncn.it.super_sonic.showcase.evaluation.entity.Assessment" >
+		<id property="id" column="id" />
+		<result property="cycleId" column="cycle_id" />
+		<result property="criticId" column="critic_id" />
+		<result property="userId" column="user_id" />
+		<result property="priseWill" column="prise_will" />
+		<result property="priseWisdom" column="prise_wisdom" />
+		<result property="priseLove" column="prise_love" />
+		<result property="prosWill" column="pros_will" />
+		<result property="prosWisdom" column="pros_wisdom" />
+		<result property="prosLove" column="pros_love" />
+		<result property="hasRead" column="has_read" />
+		<result property="feedback" column="feedback" />
+		<result property="feedbackTime" column="feedback_time" />
+		<result property="cts" column="cts" />
+		
+	</resultMap>
+
+	<insert id="save" useGeneratedKeys="true" keyProperty="id" parameterType="com.envisioncn.it.super_sonic.showcase.evaluation.entity.Assessment">
+		INSERT INTO assessment (
+				cycle_id, critic_id, user_id,prise_will,prise_wisdom,prise_love,pros_will,pros_wisdom,pros_love
+			) VALUES (
+				#{cycleId}, #{criticId}, #{userId},#{priseWill},#{priseWisdom},#{priseLove},#{prosWill},#{prosWisdom},#{prosLove}
+			)
+	</insert>
+	
+	<select id="getAllTDEvasByTime"   resultMap="Assessment" >
+		SELECT * FROM assessment ORDER BY cts DESC
+		 
+	</select>   
+	
+</mapper>

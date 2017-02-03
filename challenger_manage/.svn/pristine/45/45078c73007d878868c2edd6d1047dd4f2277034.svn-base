@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.envisioncn.it.super_sonic.showcase.evaluation.mapper.SAPUserMapper">
+
+     <resultMap id="sapUser" type="com.envisioncn.it.super_sonic.showcase.evaluation.entity.SAPUser" >
+		<result property="userId" column="user_id" />
+		<result property="addressLine1" column="address_line1" />
+		<result property="addressLine2" column="address_line2" />
+		<result property="businessPhone" column="business_phone" />
+		<result property="city" column="city" />
+		<result property="country" column="country" />
+		<result property="criticalTalentCommes" column="critical_talent_commes" />
+		<result property="custom01" column="custom01" />
+		<result property="custom02" column="custom02" />
+		<result property="custom03" column="custom03" />
+		<result property="custom04" column="custom04" />
+		<result property="custom05" column="custom05" />
+		<result property="custom06" column="custom06" />
+		<result property="custom07" column="custom07" />
+		<result property="custom08" column="custom08" />
+		<result property="custom09" column="custom09" />
+		<result property="custom10" column="custom10" />
+		<result property="custom11" column="custom11" />
+		<result property="custom12" column="custom12" />
+		<result property="custom13" column="custom13" />
+		<result property="custom14" column="custom14" />
+		<result property="custom15" column="custom15" />
+		<result property="dateOfBirth" column="date_of_birth" />
+		<result property="defaultLocale" column="default_locale" />
+		<result property="department" column="department" />
+		<result property="division" column="division" />
+		<result property="email" column="email" />
+		<result property="empId" column="empId" />
+		<result property="employeeClass" column="employee_class" />
+		<result property="firstName" column="first_name" />
+		<result property="gender" column="gender" />
+		<result property="hireDate" column="hire_date" />
+		<result property="impactOfLossComments" column="impact_of_loss_comments" />
+		<result property="issueComments" column="issue_comments" />
+		<result property="jobCode" column="job_code" />
+		<result property="lastModified" column="last_modified" />
+		<result property="lastModifiedDateTime" column="last_modified_date_time" />
+		<result property="lastModifiedWithTZ" column="last_modified_with_TZ" />
+		<result property="lastName" column="last_name" />
+		<result property="lastReviewDate" column="last_review_date" />
+		<result property="location" column="location" />
+		<result property="origHireDate" column="orig_hire_date" />
+		<result property="password" column="password" />
+		<result property="reasonForLeaving" column="reason_for_leaving" />
+		<result property="reloComments" column="relo_comments" />
+		<result property="reloLocation" column="relo_location" />
+		<result property="reloWilling" column="relo_willing" />
+		<result property="reviewFreq" column="review_freq" />
+		<result property="seatingChart" column="seating_chart" />
+		<result property="state" column="state" />
+		<result property="status" column="status" />
+		<result property="sysCostOfSource" column="sys_cost_of_source" />
+		<result property="sysSource" column="sys_source" />
+		<result property="sysStartingSalary" column="sys_starting_salary" />
+		<result property="timeZone" column="time_zone" />
+		<result property="title" column="title" />
+		<result property="totalTeamSize" column="total_team_size" />
+		<result property="username" column="username" />
+		<result property="uts" column="uts" />
+	</resultMap>
+	
+	<select id="getSapUsersById" parameterType="String" resultMap="sapUser">
+		SELECT * FROM sap_user WHERE user_id = #{userId} 
+	</select>
+	
+	<select id="getSapUsers"  resultMap="sapUser">
+		SELECT * FROM sap_user
+	</select>
+	
+</mapper>

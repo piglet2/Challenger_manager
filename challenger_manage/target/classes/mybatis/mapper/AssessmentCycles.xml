@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.envisioncn.it.super_sonic.showcase.evaluation.mapper.AssessmentCyclesMapper">
+
+	<resultMap id="AssessmentCycles" type="com.envisioncn.it.super_sonic.showcase.evaluation.entity.AssessmentCycles" >
+		<id property="id" column="id" />
+		<result property="cycleId" column="cycle_id" />
+		<result property="cyclesDateFrom" column="cycles_date_from" />
+		<result property="cyclesDateTo" column="cycles_date_to" />
+		<result property="des" column="des" />
+		<result property="cts" column="cts" />
+	</resultMap>
+	
+	<select id="getAssessmentPeriod" resultMap="AssessmentCycles" >
+			SELECT * FROM assessment_cycles 
+			WHERE cycle_id=#{cycleId} 
+       		ORDER BY id DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,541 @@
+/******************************************************************************
+ * @File name : EvaluationService.java
+ *
+ * @Author : bo.chen
+ *
+ * @Date : 2016年8月15日 下午4:54:30
+ *
+ * @Copyright Notice: Copyright (c) 2016 Envision, Inc. All Rights Reserved.
+ *            This software is published under the terms of the Envision
+ *            Software License version 1.0, a copy of which has been included
+ *            with this distribution in the LICENSE.txt file.
+ *
+ *****************************************************************************/
+package com.envisioncn.it.super_sonic.showcase.evaluation.biz;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.Assessment;
+import com.envisioncn.it.super_sonic.showcase.evaluation.entity.Evaluation;
+import com.envisioncn.it.super_sonic.showcase.evaluation.mapper.AssessmentMapper;
+import com.envisioncn.it.super_sonic.showcase.evaluation.mapper.EvaluationMapper;
+import com.envisioncn.it.super_sonic.showcase.evaluation.pbg.EvaluationPageBean;
+import com.envisioncn.it.super_sonic.showcase.evaluation.pbg.ImportAssPageBean;
+import com.envisioncn.it.super_sonic.showcase.evaluation.pbg.ImportEvaPageBean;
+import com.envisioncn.it.super_sonic.showcase.evaluation.tran.EvaluationTransfer;
+import com.envisioncn.it.super_sonic.showcase.evaluation.utils.ExcelUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+
+@Service
+public class EvaluationService{
+	
+	@Autowired
+	private EvaluationMapper evaluationMapper;
+	@Autowired
+	private EvaluationTransfer evaluationTransfer;
+	@Autowired
+	private AssessmentMapper assessmentMapper;
+	
+//    private static final String EvaluationList="EvaluationList";
+//	
+//	private static final ConcurrentMap<String, List<EvaluationPageBean>> CACHE = new ConcurrentHashMap<String, List<EvaluationPageBean>>();
+  
+	/*
+     * 查询所有纵向评论
+     */
+	public  List<Evaluation> getAllMDEvas() {
+		return evaluationMapper.getAllMDEvasByTime();
+	}
+	
+	/*
+	 * 查询所有横向评论
+	 */
+	public  List<Assessment> getAllTDEvas() {
+		return assessmentMapper.getAllTDEvasByTime();
+	}
+	/*
+	 * 评论列表
+	 */
+	public List<EvaluationPageBean> getEvaluationList(String code) throws Exception {
+		Objects.requireNonNull(code);
+//		List<EvaluationPageBean> evaluations = CACHE.get(EvaluationList);
+//		if (evaluations == null) {
+		List<EvaluationPageBean>  evaluations = evaluationTransfer.toPageBeanByCode(code);
+//			if (evaluations != null) {
+//				CACHE.put(EvaluationList, evaluations);
+//			}
+//		}
+
+		return evaluations;
+	}
+	/*
+	 * 根据条件（user_id,userName,period_id）查询评论列表
+	 */
+	public List<EvaluationPageBean> getEvaluationByCondition(String condition,String code,String mode) throws Exception {
+		List<EvaluationPageBean> lists = getEvaluationList(code);
+		List<EvaluationPageBean> evas =  Collections.emptyList();
+
+		if (StringUtils.isEmpty(condition)) {
+			return lists;
+		} else {
+			if (!lists.isEmpty()) {
+				evas = new LinkedList<EvaluationPageBean>();
+				
+				for (EvaluationPageBean eva : lists) {
+					
+				   if(mode.equals(ExcelUtils.ALL)){
+					   if (eva.getManager().equals(condition)
+								|| eva.getUser().equals(condition)) {
+							evas.add(eva);
+						} else if (eva.getManagerId().equals(condition)
+								|| eva.getUserId().equals(condition)) {
+							evas.add(eva);
+						} 
+					   
+				   } else if(mode.equals(ExcelUtils.SEND)) {
+					    if (eva.getManager().equals(condition)) {
+							evas.add(eva);
+						} else if (eva.getManagerId().equals(condition)) {
+							evas.add(eva);
+						} 
+					    
+				   } else if (mode.equals(ExcelUtils.GET)) {
+					   if (eva.getUser().equals(condition)) {
+							evas.add(eva);
+						} else if (eva.getUserId().equals(condition)) {
+							evas.add(eva);
+						} 
+				   }
+				   
+				   if (eva.getPeriodId().equals(condition)) {
+						evas.add(eva);
+					} else if(getDate(eva.getCts()).equals(condition)) {
+						evas.add(eva);
+					}
+				}
+			}
+		}
+		return evas;
+	}
+	
+	private String getDate(String cts) {
+		
+		return com.envisioncn.it.super_sonic.showcase.evaluation.utils.StringUtils.cutString(cts);
+	}
+
+	/*
+	 * 列表导出
+	 */
+	public void export(HttpServletResponse response,HttpServletRequest request,List<EvaluationPageBean> lists,String code,String condition) throws Exception{
+		//1.创建一个excel工作簿文件
+				XSSFWorkbook xssfWorkbook = new XSSFWorkbook();
+				//2.在工作簿中创建一个工作表sheet
+				//HSSFSheet sheet = hssfWorkbook.createSheet();
+				XSSFSheet sheet = xssfWorkbook.createSheet("Challenger评论列表");
+				//3.一行一行写数据
+				XSSFRow headerRow = sheet.createRow(0);
+				//写格格
+				//创建标题
+				ExcelUtils.createTitle(headerRow, code);
+				
+//				lists = getOrderEvas(lists);//将评论和未评论的数据分开
+				lists = getEvaList(lists,code,condition);
+				for (EvaluationPageBean pb : lists) {
+					XSSFRow dataRow = sheet.createRow(sheet.getLastRowNum()+1);
+					//写格格
+					dataRow.createCell(0).setCellValue(pb.getPeriod());
+					
+					dataRow.createCell(1).setCellValue(pb.getManagerId());
+					dataRow.createCell(2).setCellValue(pb.getManager());
+					dataRow.createCell(3).setCellValue(pb.getManagerLocation());
+					dataRow.createCell(4).setCellValue(pb.getManagerDivision());
+					dataRow.createCell(5).setCellValue(pb.getManagerDepartment());
+					
+					dataRow.createCell(6).setCellValue(pb.getUserId());
+					dataRow.createCell(7).setCellValue(pb.getUser());
+					dataRow.createCell(8).setCellValue(pb.getUserLocation());
+					dataRow.createCell(9).setCellValue(pb.getUserDivision());
+					dataRow.createCell(10).setCellValue(pb.getUserDepartment());
+					
+					dataRow.createCell(11).setCellValue(pb.getPriseWill());
+					dataRow.createCell(12).setCellValue(pb.getPriseWisdom());
+					dataRow.createCell(13).setCellValue(pb.getPriseLove());
+					dataRow.createCell(14).setCellValue(pb.getProsWill());
+					dataRow.createCell(15).setCellValue(pb.getProsWisdom());
+					dataRow.createCell(16).setCellValue(pb.getProsLove());
+					dataRow.createCell(17).setCellValue(pb.getCts());
+					dataRow.createCell(18).setCellValue(pb.getRemark());
+				}
+				
+				//附件下载
+				ExcelUtils.downFile(response, request, xssfWorkbook);
+	}
+
+	
+
+
+
+	/*
+	 * 得到excel文件内容（纵向）
+	 */
+	public List<ImportEvaPageBean> getMDExcel(InputStream in, String fileName)
+			throws IOException {
+		Objects.requireNonNull(in);
+		Objects.requireNonNull(fileName);
+
+        Workbook workbook = ExcelUtils.createWorkbook(fileName, in);
+        List<ImportEvaPageBean> list = readMDExcel(workbook);
+		return list;
+	}
+	
+	/*
+	 * 得到excel文件内容（横向）
+	 */
+	public List<ImportAssPageBean> getTDExcel(InputStream in, String fileName)
+			throws IOException {
+		Objects.requireNonNull(in);
+		Objects.requireNonNull(fileName);
+
+        Workbook workbook = ExcelUtils.createWorkbook(fileName, in);
+        List<ImportAssPageBean> list = readTDExcel(workbook);
+		return list;
+	}
+	/*
+	 * 读取excle文件（纵向）
+	 */
+	private List<ImportEvaPageBean> readMDExcel(Workbook workbook) throws IOException{
+		
+		 ImportEvaPageBean eva = null;
+         List<ImportEvaPageBean> list = new LinkedList<ImportEvaPageBean>();
+         
+	        // 循环工作表Sheet
+	        for (int numSheet = 0; numSheet < workbook.getNumberOfSheets(); numSheet++) {
+	            Sheet sheet = workbook.getSheetAt(numSheet);
+	            if (sheet == null) {
+	                continue;
+	            }
+	            // 循环行Row
+	            for (int rowNum = 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
+	                Row row = sheet.getRow(rowNum);
+	                if (row == null) {
+	                    continue;
+	                }
+	                eva = new ImportEvaPageBean();
+	                // 读取列Cell
+	                Cell periodId = row.getCell(1);
+	                if (periodId == null) {
+	                    continue;
+	                }
+	                eva.setPeriodId(ExcelUtils.getValue(periodId));
+	                
+	                Cell managerId = row.getCell(2);
+	                if (managerId == null) {
+	                    continue;
+	                }
+	                eva.setManagerId(ExcelUtils.getValue(managerId));
+	                
+	                Cell userId = row.getCell(3);
+	                if (userId == null) {
+	                    continue;
+	                }
+	                eva.setUserId(ExcelUtils.getValue(userId));
+	                
+	               Cell priseWill = row.getCell(4);
+	                if (priseWill == null) {
+	                    continue;
+	                }
+	                eva.setPriseWill(Integer.parseInt(ExcelUtils.getValue(priseWill)));
+	                
+	               Cell priseWisdom = row.getCell(5);
+	                if (priseWisdom == null) {
+	                    continue;
+	                }
+	                eva.setPriseWisdom(Integer.parseInt(ExcelUtils.getValue(priseWisdom)));
+	                
+	                Cell priseLove = row.getCell(6);
+	                if (priseLove == null) {
+	                    continue;
+	                }
+	                eva.setPriseLove(Integer.parseInt(ExcelUtils.getValue(priseLove)));
+	                
+	                Cell prosWill = row.getCell(7);
+	                if (prosWill == null) {
+	                    continue;
+	                }
+	                eva.setProsWill(ExcelUtils.getValue(prosWill));
+	                
+	                Cell prosWisdom = row.getCell(8);
+	                if (prosWisdom == null) {
+	                    continue;
+	                }
+	                eva.setProsWisdom(ExcelUtils.getValue(prosWisdom));
+	                
+	                Cell prosLove = row.getCell(9);
+	                if (prosLove == null) {
+	                    continue;
+	                }
+	                eva.setProsLove(ExcelUtils.getValue(prosLove));
+	                
+	                Cell remark = row.getCell(10);
+	                if (remark == null) {
+	                    continue;
+	                }
+	                eva.setRemark(ExcelUtils.getValue(remark));
+	                
+	                list.add(eva);
+	            }
+	        }
+	        return list;
+	}
+	
+	/*
+	 * 读取excle（横向）
+	 */
+	private List<ImportAssPageBean> readTDExcel(Workbook workbook) throws IOException{
+		ImportAssPageBean ass = null;
+         List<ImportAssPageBean> list = new LinkedList<ImportAssPageBean>();
+         
+         // 循环工作表Sheet
+	        for (int numSheet = 0; numSheet < workbook.getNumberOfSheets(); numSheet++) {
+	            Sheet sheet = workbook.getSheetAt(numSheet);
+	            if (sheet == null) {
+	                continue;
+	            }
+	            // 循环行Row
+	            for (int rowNum = 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
+	                Row row = sheet.getRow(rowNum);
+	                if (row == null) {
+	                    continue;
+	                }
+	                ass = new ImportAssPageBean();
+	                // 读取列Cell
+	                Cell cycleId = row.getCell(1);
+	                if (cycleId == null) {
+	                    continue;
+	                }
+	                ass.setCycleId(ExcelUtils.getValue(cycleId));
+	                
+	                Cell criticId = row.getCell(2);
+	                if (criticId == null) {
+	                    continue;
+	                }
+	                ass.setCriticId(ExcelUtils.getValue(criticId));
+	                
+	                Cell userId = row.getCell(3);
+	                if (userId == null) {
+	                    continue;
+	                }
+	                ass.setUserId(ExcelUtils.getValue(userId));
+	                
+	               Cell priseWill = row.getCell(4);
+	                if (priseWill == null) {
+	                    continue;
+	                }
+	                ass.setPriseWill(Integer.parseInt(ExcelUtils.getValue(priseWill)));
+	                
+	               Cell priseWisdom = row.getCell(5);
+	                if (priseWisdom == null) {
+	                    continue;
+	                }
+	                ass.setPriseWisdom(Integer.parseInt(ExcelUtils.getValue(priseWisdom)));
+	                
+	                Cell priseLove = row.getCell(6);
+	                if (priseLove == null) {
+	                    continue;
+	                }
+	                ass.setPriseLove(Integer.parseInt(ExcelUtils.getValue(priseLove)));
+	                
+	                Cell prosWill = row.getCell(7);
+	                if (prosWill == null) {
+	                    continue;
+	                }
+	                ass.setProsWill(ExcelUtils.getValue(prosWill));
+	                
+	                Cell prosWisdom = row.getCell(8);
+	                if (prosWisdom == null) {
+	                    continue;
+	                }
+	                ass.setProsWisdom(ExcelUtils.getValue(prosWisdom));
+	                
+	                Cell prosLove = row.getCell(9);
+	                if (prosLove == null) {
+	                    continue;
+	                }
+	                ass.setProsLove(ExcelUtils.getValue(prosLove));
+	                
+	                list.add(ass);
+	            }
+	        }
+	        return list;
+	}
+	
+	/*
+	 * 导入纵向评论数据
+	 */
+	public String importEvaluation(List<ImportEvaPageBean> list) {
+		 Objects.requireNonNull(list);
+		 Gson gson =new Gson();
+		 int code=0;
+		 for (ImportEvaPageBean eva : list) {
+			 String json = gson.toJson(eva);
+			 System.out.println(json);
+			 // 创建默认的httpClient实例.  
+			 CloseableHttpClient httpclient = HttpClients.createDefault();
+			 // 创建httppost    
+			 //测试
+//		     HttpPost httppost = new HttpPost("http://172.16.34.46:10080/Challenger/evaluation"); 
+		     //生产
+			 HttpPost httppost = new HttpPost("https://clg.envisioncn.com/Challenger/evaluation"); 
+		     httppost.addHeader("Content-type","application/json; charset=utf-8");  
+		     httppost.setHeader("Accept", "application/json");  
+		     httppost.setEntity(new StringEntity(json, Charset.forName("UTF-8")));  
+	         
+	         try {
+				CloseableHttpResponse response = httpclient.execute(httppost);
+				code = response.getStatusLine().getStatusCode();
+				
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {  
+	            // 关闭连接,释放资源    
+	            try {  
+	                httpclient.close();  
+	            } catch (IOException e) {  
+	                e.printStackTrace();  
+	            }  
+	        }   
+	   }
+		return String.valueOf(code);
+		
+	/*	for (Evaluation evaluation : list) {
+			
+			evaluationMapper.save(evaluation);
+		}*/
+	}
+	
+	/*
+	 * 导入横向评论数据
+	 */
+	public String importAssessment(List<ImportAssPageBean> list) {
+		 Objects.requireNonNull(list);
+		 Gson gson =new Gson();
+		 int code=0;
+		 for (ImportAssPageBean eva : list) {
+			 String json = gson.toJson(eva);
+			 System.out.println(json);
+			 // 创建默认的httpClient实例.  
+			 CloseableHttpClient httpclient = HttpClients.createDefault();
+			 // 创建httppost    
+			 //测试
+//		     HttpPost httppost = new HttpPost("http://172.16.34.46:10080/Challenger/assessment"); 
+			 //生产
+			 HttpPost httppost = new HttpPost("https://clg.envisioncn.com/Challenger/assessment"); 
+		     httppost.addHeader("Content-type","application/json; charset=utf-8");  
+		     httppost.setHeader("Accept", "application/json");  
+		     httppost.setEntity(new StringEntity(json, Charset.forName("UTF-8")));  
+	         
+	         try {
+				CloseableHttpResponse response = httpclient.execute(httppost);
+				code = response.getStatusLine().getStatusCode();
+				
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {  
+	            // 关闭连接,释放资源    
+	            try {  
+	                httpclient.close();  
+	            } catch (IOException e) {  
+	                e.printStackTrace();  
+	            }  
+	        }   
+	   }
+		return String.valueOf(code);
+	/*	for (ImportAssPageBean assessment : list) {
+
+			assessmentMapper.save(assessment);
+
+		}*/
+	}
+/*	
+	 * 将评论数据和未评论数据分开
+	 
+	private List<EvaluationPageBean> getOrderEvas(List<EvaluationPageBean> lists) {
+		List<EvaluationPageBean> list = new LinkedList<EvaluationPageBean>();
+		List<EvaluationPageBean> list1 = new LinkedList<EvaluationPageBean>();
+		for (EvaluationPageBean pb : lists) {
+			if (StringUtils.isNotEmpty(pb.getProsWill())
+					|| StringUtils.isNotEmpty(pb.getProsWisdom())
+					|| StringUtils.isNotEmpty(pb.getProsLove())) {
+				list.add(pb);
+			} else {
+				list1.add(pb);
+			}
+		}
+		for (EvaluationPageBean pb : list1) {
+			list.add(pb);
+		}
+		
+		return list;
+
+	}*/
+	
+	private List<EvaluationPageBean> getEvaList(List<EvaluationPageBean> lists, String code,String condition) {
+		List<EvaluationPageBean> list =new LinkedList<EvaluationPageBean>();
+		if(!lists.isEmpty()){
+			for (EvaluationPageBean evaluationPageBean : lists) {
+				list.add(evaluationPageBean);
+			}
+			if(condition.equals(lists.get(0).getPeriodId())){
+				if(code.equals(ExcelUtils.MDEVA)||code.equals(ExcelUtils.ALL)){
+					List<EvaluationPageBean> pbs = evaluationMapper.getNotEvaluation(condition);
+					for (EvaluationPageBean pb : pbs) {
+						pb.setPeriod(lists.get(0).getPeriod());
+						list.add(pb);
+					}	
+				}
+			}
+		}
+		
+		return list;
+	}
+
+	public List<EvaluationPageBean> testNotEva(String perId) {
+		return evaluationMapper.getNotEvaluation(perId);
+	}
+	
+}
